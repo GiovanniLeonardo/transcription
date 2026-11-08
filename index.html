@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScribePilot - Voice & Meeting Intelligence</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              200: '#ddd6fe',
+              300: '#c4b5fd',
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              800: '#5b21b6',
+              900: '#4c1d95',
+              950: '#2e1065',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #334155;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .recording-ring {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
+
+  <!-- Navigation / Header -->
+  <header class="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-indigo-600 dark:from-white dark:via-brand-300 dark:to-indigo-300 bg-clip-text text-transparent">ScribePilot</span>
+          <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">Copilot AI</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-4">
+        <!-- New Session Quick Button -->
+        <button id="btn-new-recording" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white shadow-sm shadow-brand-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span class="hidden sm:inline">New Session</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button id="btn-theme-toggle" class="p-2 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Theme">
+          <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg id="icon-moon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- LEFT SIDEBAR: History / Saved Sessions -->
+    <aside class="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[calc(100vh-7.5rem)] sticky top-20">
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-brand-600 dark:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <h2 class="font-semibold text-slate-800 dark:text-slate-100">Past Sessions</h2>
+          </div>
+          <span id="session-count-badge" class="text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full">0</span>
+        </div>
+
+        <!-- Search / Filter input -->
+        <div class="relative">
+          <input id="session-search" type="text" placeholder="Search sessions or subjects..." class="w-full text-xs sm:text-sm pl-8 pr-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-slate-200 transition">
+          <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Session List Container -->
+      <div id="session-list" class="flex-1 overflow-y-auto p-3 space-y-2">
+        <!-- Rendered dynamically -->
+        <div id="session-list-empty" class="text-center py-12 px-4 text-slate-400 dark:text-slate-500">
+          <svg class="w-12 h-12 mx-auto stroke-1 text-slate-300 dark:text-slate-700 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <p class="text-sm font-medium">No recorded conversations yet</p>
+          <p class="text-xs mt-1">Start a recording or paste a transcript to generate a summary.</p>
+        </div>
+      </div>
+
+      <div class="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center text-xs text-slate-500">
+        <span>Stored locally in browser</span>
+        <button id="btn-clear-all" class="text-rose-500 hover:text-rose-600 hover:underline">Clear all</button>
+      </div>
+    </aside>
+
+    <!-- RIGHT WORKSPACE: Live Recording Studio & Copilot Summary View -->
+    <section class="lg:col-span-8 space-y-6">
+      
+      <!-- Recording Studio Card -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 relative overflow-hidden">
+        
+        <!-- Live status bar -->
+        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+          <div class="flex items-center gap-3">
+            <div id="recording-status-dot" class="w-3.5 h-3.5 rounded-full bg-slate-300 dark:bg-slate-700 transition-colors"></div>
+            <span id="recording-status-text" class="text-sm font-semibold text-slate-600 dark:text-slate-300">Ready to Record</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- Timer -->
+            <div class="font-mono text-lg font-bold tracking-wider text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-md">
+              <span id="recording-timer">00:00</span>
+            </div>
+            <!-- Mode Switch: Mic vs Manual Text -->
+            <div class="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1 text-xs">
+              <button id="mode-mic-btn" class="px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 font-semibold shadow-sm text-slate-900 dark:text-white transition">Microphone</button>
+              <button id="mode-text-btn" class="px-2.5 py-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">Paste Text</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio Visualizer Canvas Container (Mic Mode) -->
+        <div id="mic-view" class="space-y-4">
+          <div class="relative w-full h-28 bg-slate-950 rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+            <canvas id="visualizer-canvas" class="w-full h-full block"></canvas>
+            <!-- Overlay hint if idle -->
+            <div id="visualizer-idle-msg" class="absolute pointer-events-none inset-0 flex flex-col items-center justify-center text-slate-400 text-xs">
+              <svg class="w-7 h-7 mb-1 stroke-1 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+              <span>Click "Start Recording" or speak to begin live capture</span>
+            </div>
+          </div>
+
+          <!-- Controls Bar -->
+          <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <!-- Start / Record button -->
+            <button id="btn-start-record" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-500/30 transition-all hover:scale-105 active:scale-95">
+              <span class="w-3 h-3 rounded-full bg-white animate-pulse"></span>
+              <span>Start Recording</span>
+            </button>
+
+            <!-- Pause / Resume button -->
+            <button id="btn-pause-record" disabled class="disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+              <svg id="pause-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span id="pause-btn-text">Pause</span>
+            </button>
+
+            <!-- Stop and Summarize button -->
+            <button id="btn-stop-record" disabled class="disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white bg-brand-600 hover:bg-brand-700 shadow-md shadow-brand-500/25 transition-all hover:scale-105 active:scale-95">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Finish & Summarize</span>
+            </button>
+
+            <!-- Reset / Discard -->
+            <button id="btn-reset-record" class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-500 hover:text-rose-500 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Discard</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Manual Text / Upload Mode -->
+        <div id="text-view" class="space-y-3 hidden">
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Paste meeting notes, dictation transcripts, or conversation logs directly to generate a Copilot session summary.
+          </p>
+          <textarea id="manual-transcript-input" rows="5" placeholder="Example: Today we discussed the Q3 product release roadmap. Sarah mentioned the database migrations are 80% done, but frontend UI review is pending with Michael until Thursday..." class="w-full text-sm p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-slate-200"></textarea>
+          <div class="flex justify-end gap-2">
+            <button id="btn-summarize-manual" class="px-5 py-2 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-sm transition">
+              Summarize Content
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Real-Time Transcript Stream Box -->
+        <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Live Transcript Stream
+            </label>
+            <span id="speech-recognition-supported-hint" class="text-[11px] text-slate-400">Speech recognition active</span>
+          </div>
+          <div id="live-transcript-box" class="p-3 max-h-32 min-h-[4rem] overflow-y-auto rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
+            <span class="text-slate-400 italic">Spoken conversation words will appear here in real-time...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Copilot Summarization Result Card -->
+      <div id="summary-section" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-all">
+        
+        <!-- Summary Header with Subject & Actions -->
+        <div class="p-6 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-brand-50/50 via-white to-indigo-50/30 dark:from-brand-950/20 dark:via-slate-900 dark:to-slate-900">
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 text-xs font-semibold rounded-md bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
+                  Meeting Summary
+                </span>
+                <span id="summary-date-badge" class="text-xs text-slate-400">--</span>
+              </div>
+              <h1 id="summary-subject" class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                Session Subject will appear here
+              </h1>
+              <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <span id="summary-duration-tag">Duration: 00:00</span>
+                <span>•</span>
+                <span id="summary-source-tag">Live Mic</span>
+              </p>
+            </div>
+
+            <!-- Export / Share / Delete Bar -->
+            <div class="flex items-center gap-2">
+              <button id="btn-copy-summary" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition" title="Copy to Markdown">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                <span>Copy</span>
+              </button>
+              <button id="btn-export-txt" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition" title="Download Text">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>Export</span>
+              </button>
+              <button id="btn-delete-current" class="inline-flex items-center p-2 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Delete Session">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Processing State Indicator -->
+        <div id="ai-loading-indicator" class="hidden p-8 text-center bg-slate-50/50 dark:bg-slate-900/50">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 mb-3 animate-spin">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200">Analyzing Conversation with Gemini Copilot...</h3>
+          <p class="text-xs text-slate-400 mt-1">Extracting subjects, executive notes, takeaways, and assigning action items.</p>
+        </div>
+
+        <!-- Summary Body Content -->
+        <div id="summary-content" class="p-6 space-y-6">
+          
+          <!-- Executive Summary -->
+          <div class="p-4 rounded-xl bg-gradient-to-br from-indigo-50/80 to-brand-50/50 dark:from-indigo-950/30 dark:to-brand-950/20 border border-indigo-100 dark:border-indigo-900/40">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5 mb-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Executive Summary
+            </h3>
+            <p id="summary-executive" class="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+              Start a voice recording or paste text to generate your first Copilot summary.
+            </p>
+          </div>
+
+          <!-- Key Discussion Points -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-3">
+              <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Key Discussion Points
+            </h3>
+            <ul id="summary-keypoints" class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-2 shrink-0"></span>
+                <span>No points yet.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Action Items & Tasks -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-3">
+              <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Action Items & Next Steps
+            </h3>
+            <div id="summary-action-items" class="space-y-2">
+              <div class="text-xs text-slate-400 italic">No action items recorded.</div>
+            </div>
+          </div>
+
+          <!-- Decisions & Key Takeaways -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-3">
+              <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Decisions Made
+            </h3>
+            <ul id="summary-decisions" class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0"></span>
+                <span>None noted.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Full Raw Transcript Accordion -->
+          <div class="border-t border-slate-100 dark:border-slate-800 pt-4">
+            <button id="btn-toggle-transcript" class="w-full flex items-center justify-between text-left text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+                View Full Raw Recorded Transcript
+              </span>
+              <svg id="transcript-chevron" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div id="transcript-collapse" class="hidden mt-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl text-xs font-mono text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto border border-slate-200/60 dark:border-slate-800">
+              No transcript available.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Toast Container -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-16 opacity-0 transition-all duration-300 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2">
+    <svg id="toast-icon" class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+    </svg>
+    <span id="toast-msg">Notification</span>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    // --- State Management ---
+    let sessions = [];
+    let activeSessionId = null;
+    let isRecording = false;
+    let isPaused = false;
+    let recordingStartTime = 0;
+    let recordingElapsedSeconds = 0;
+    let timerInterval = null;
+    let liveTranscript = "";
+    let finalTranscript = "";
+
+    // Web Audio & Speech Recognition references
+    let recognition = null;
+    let audioContext = null;
+    let analyserNode = null;
+    let microphoneStream = null;
+    let animationFrameId = null;
+
+    // --- DOM Elements ---
+    const visualizerCanvas = document.getElementById('visualizer-canvas');
+    const visualizerIdleMsg = document.getElementById('visualizer-idle-msg');
+    const recordingStatusDot = document.getElementById('recording-status-dot');
+    const recordingStatusText = document.getElementById('recording-status-text');
+    const recordingTimer = document.getElementById('recording-timer');
+    const liveTranscriptBox = document.getElementById('live-transcript-box');
+    const btnStartRecord = document.getElementById('btn-start-record');
+    const btnPauseRecord = document.getElementById('btn-pause-record');
+    const btnStopRecord = document.getElementById('btn-stop-record');
+    const btnResetRecord = document.getElementById('btn-reset-record');
+    const pauseBtnText = document.getElementById('pause-btn-text');
+    const modeMicBtn = document.getElementById('mode-mic-btn');
+    const modeTextBtn = document.getElementById('mode-text-btn');
+    const micView = document.getElementById('mic-view');
+    const textView = document.getElementById('text-view');
+    const manualTranscriptInput = document.getElementById('manual-transcript-input');
+    const btnSummarizeManual = document.getElementById('btn-summarize-manual');
+    const sessionList = document.getElementById('session-list');
+    const sessionListEmpty = document.getElementById('session-list-empty');
+    const sessionCountBadge = document.getElementById('session-count-badge');
+    const sessionSearch = document.getElementById('session-search');
+    const btnClearAll = document.getElementById('btn-clear-all');
+    const btnNewRecording = document.getElementById('btn-new-recording');
+    const summarySubject = document.getElementById('summary-subject');
+    const summaryExecutive = document.getElementById('summary-executive');
+    const summaryKeypoints = document.getElementById('summary-keypoints');
+    const summaryActionItems = document.getElementById('summary-action-items');
+    const summaryDecisions = document.getElementById('summary-decisions');
+    const summaryDateBadge = document.getElementById('summary-date-badge');
+    const summaryDurationTag = document.getElementById('summary-duration-tag');
+    const summarySourceTag = document.getElementById('summary-source-tag');
+    const aiLoadingIndicator = document.getElementById('ai-loading-indicator');
+    const summaryContent = document.getElementById('summary-content');
+    const btnToggleTranscript = document.getElementById('btn-toggle-transcript');
+    const transcriptCollapse = document.getElementById('transcript-collapse');
+    const transcriptChevron = document.getElementById('transcript-chevron');
+    const btnCopySummary = document.getElementById('btn-copy-summary');
+    const btnExportTxt = document.getElementById('btn-export-txt');
+    const btnDeleteCurrent = document.getElementById('btn-delete-current');
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    const iconSun = document.getElementById('icon-sun');
+    const iconMoon = document.getElementById('icon-moon');
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+
+    // --- Toast Notification Helper ---
+    function showToast(message, isError = false) {
+      toastMsg.innerText = message;
+      toast.classList.remove('translate-y-16', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      if (isError) {
+        toast.classList.add('bg-rose-900', 'text-white');
+      } else {
+        toast.classList.remove('bg-rose-900');
+      }
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-16', 'opacity-0');
+      }, 3000);
+    }
+
+    // --- Dark Mode Init ---
+    function initTheme() {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        iconSun.classList.remove('hidden');
+        iconMoon.classList.add('hidden');
+      } else {
+        document.documentElement.classList.remove('dark');
+        iconSun.classList.add('hidden');
+        iconMoon.classList.remove('hidden');
+      }
+    }
+
+    btnThemeToggle.addEventListener('click', () => {
+      if (document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.remove('dark');
+        localStorage.theme = 'light';
+        iconSun.classList.add('hidden');
+        iconMoon.classList.remove('hidden');
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.theme = 'dark';
+        iconSun.classList.remove('hidden');
+        iconMoon.classList.add('hidden');
+      }
+    });
+
+    // --- Storage Management ---
+    function loadSessionsFromStorage() {
+      try {
+        const stored = localStorage.getItem('scribepilot_sessions');
+        if (stored) {
+          sessions = JSON.parse(stored);
+        } else {
+          // Provide an initial sample session for delight
+          sessions = [
+            {
+              id: 'demo-101',
+              subject: 'Q3 Product Roadmap & API Integration Sync',
+              createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+              duration: '03:45',
+              source: 'Voice Note',
+              executiveSummary: 'Reviewed the deliverables for the third quarter roadmap with a major focus on completing the Gemini Live API voice integration ahead of the stakeholder showcase.',
+              keyPoints: [
+                'Speech recognition latency was reduced by 35% across modern browsers.',
+                'Backend rate limits will be handled gracefully using client exponential backoff.',
+                'Action items assigned for UI polish and dark mode contrasts.'
+              ],
+              actionItems: [
+                { task: 'Finish API client fallback error handling', assignee: 'Alex', done: true },
+                { task: 'Audit dark-theme color accessibility with design team', assignee: 'Sarah', done: false },
+                { task: 'Deploy staging build before Thursday EOD', assignee: 'DevOps', done: false }
+              ],
+              decisions: [
+                'Prioritize web speech recognition natively over sending heavy raw PCM files.',
+                'Keep transcripts local by default for user privacy and compliance.'
+              ],
+              transcript: "Good morning team. Let's align on the Q3 product roadmap. Sarah, what is the status of the API integration? Sarah noted the speech recognition latency is down by 35 percent. Alex mentioned that error boundaries will handle potential throttles. We agreed to ship the staging build by Thursday EOD. Let's make sure dark-theme contrast adheres to accessibility standards."
+            }
+          ];
+          saveSessionsToStorage();
+        }
+      } catch (err) {
+        sessions = [];
+      }
+      renderSessionList();
+      if (sessions.length > 0) {
+        selectSession(sessions[0].id);
+      }
+    }
+
+    function saveSessionsToStorage() {
+      try {
+        localStorage.setItem('scribepilot_sessions', JSON.stringify(sessions));
+      } catch (err) {
+        console.warn('Could not save to localStorage', err);
+      }
+      renderSessionList();
+    }
+
+    // --- Visualizer Rendering ---
+    function setupVisualizer() {
+      const canvas = visualizerCanvas;
+      const ctx = canvas.getContext('2d');
+
+      function resize() {
+        canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+        canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      function draw() {
+        animationFrameId = requestAnimationFrame(draw);
+        const width = canvas.parentElement.clientWidth;
+        const height = canvas.parentElement.clientHeight;
+
+        ctx.clearRect(0, 0, width, height);
+
+        if (!analyserNode || !isRecording || isPaused) {
+          // Draw subtle resting line
+          ctx.beginPath();
+          ctx.moveTo(0, height / 2);
+          ctx.lineTo(width, height / 2);
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          return;
+        }
+
+        const bufferLength = analyserNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyserNode.getByteTimeDomainData(dataArray);
+
+        ctx.lineWidth = 2.5;
+        const gradient = ctx.createLinearGradient(0, 0, width, 0);
+        gradient.addColorStop(0, '#8b5cf6');
+        gradient.addColorStop(0.5, '#ec4899');
+        gradient.addColorStop(1, '#6366f1');
+        ctx.strokeStyle = gradient;
+
+        ctx.beginPath();
+        const sliceWidth = width * 1.0 / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = (v * height) / 2;
+
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+          x += sliceWidth;
+        }
+
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+      }
+
+      draw();
+    }
+
+    // --- Web Speech Recognition Setup ---
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        document.getElementById('speech-recognition-supported-hint').innerText = "Mic dictation: Web Speech not available, manual input active";
+        return null;
+      }
+
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = 'en-US';
+
+      rec.onresult = (event) => {
+        let interimText = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcriptPiece = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcriptPiece + " ";
+          } else {
+            interimText += transcriptPiece;
+          }
+        }
+        liveTranscript = (finalTranscript + " " + interimText).trim();
+        updateLiveTranscriptUI(liveTranscript);
+      };
+
+      rec.onerror = (event) => {
+        console.debug('Speech recognition error/event:', event.error);
+        if (event.error === 'not-allowed') {
+          showToast('Microphone access denied', true);
+          stopRecording(false);
+        }
+      };
+
+      rec.onend = () => {
+        // Automatically restart if still in recording state
+        if (isRecording && !isPaused) {
+          try { rec.start(); } catch (e) {}
+        }
+      };
+
+      return rec;
+    }
+
+    function updateLiveTranscriptUI(text) {
+      if (!text || text.trim().length === 0) {
+        liveTranscriptBox.innerHTML = '<span class="text-slate-400 italic">Listening for conversation...</span>';
+      } else {
+        liveTranscriptBox.innerText = text;
+        liveTranscriptBox.scrollTop = liveTranscriptBox.scrollHeight;
+      }
+    }
+
+    // --- Recording Control Flow ---
+    async function startRecording() {
+      try {
+        finalTranscript = "";
+        liveTranscript = "";
+        updateLiveTranscriptUI("");
+
+        // Request audio stream for visualizer
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        microphoneStream = stream;
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 1024;
+        const sourceNode = audioContext.createMediaStreamSource(stream);
+        sourceNode.connect(analyserNode);
+
+        // Initialize and start Speech Recognition
+        recognition = initSpeechRecognition();
+        if (recognition) {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.debug('Recognition already started');
+          }
+        }
+
+        isRecording = true;
+        isPaused = false;
+        recordingStartTime = Date.now();
+        recordingElapsedSeconds = 0;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(updateTimer, 1000);
+
+        // UI Updates
+        recordingStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-rose-500 recording-ring';
+        recordingStatusText.innerText = 'Recording Live...';
+        btnStartRecord.disabled = true;
+        btnStartRecord.classList.add('opacity-50', 'cursor-not-allowed');
+        btnPauseRecord.disabled = false;
+        btnStopRecord.disabled = false;
+        visualizerIdleMsg.classList.add('hidden');
+        pauseBtnText.innerText = 'Pause';
+
+        showToast('Recording started. Speak into your mic!');
+      } catch (err) {
+        console.error('Audio capture failure:', err);
+        showToast('Microphone permission required or device unavailable', true);
+      }
+    }
+
+    function pauseRecording() {
+      if (!isRecording) return;
+
+      if (!isPaused) {
+        // Pause
+        isPaused = true;
+        if (recognition) recognition.stop();
+        if (audioContext && audioContext.state === 'running') {
+          audioContext.suspend();
+        }
+        clearInterval(timerInterval);
+        recordingStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-amber-500';
+        recordingStatusText.innerText = 'Paused';
+        pauseBtnText.innerText = 'Resume';
+      } else {
+        // Resume
+        isPaused = false;
+        if (recognition) {
+          try { recognition.start(); } catch (e) {}
+        }
+        if (audioContext && audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+        timerInterval = setInterval(updateTimer, 1000);
+        recordingStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-rose-500 recording-ring';
+        recordingStatusText.innerText = 'Recording Live...';
+        pauseBtnText.innerText = 'Pause';
+      }
+    }
+
+    function stopRecording(shouldSummarize = true) {
+      if (!isRecording) return;
+
+      isRecording = false;
+      isPaused = false;
+      clearInterval(timerInterval);
+
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+        recognition = null;
+      }
+
+      if (microphoneStream) {
+        microphoneStream.getTracks().forEach(track => track.stop());
+        microphoneStream = null;
+      }
+
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+        analyserNode = null;
+      }
+
+      // Reset controls
+      recordingStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-slate-400';
+      recordingStatusText.innerText = 'Completed';
+      btnStartRecord.disabled = false;
+      btnStartRecord.classList.remove('opacity-50', 'cursor-not-allowed');
+      btnPauseRecord.disabled = true;
+      btnStopRecord.disabled = true;
+      visualizerIdleMsg.classList.remove('hidden');
+
+      const capturedDuration = formatDuration(recordingElapsedSeconds);
+
+      if (shouldSummarize) {
+        const textToProcess = (finalTranscript + " " + liveTranscript).trim();
+        if (!textToProcess || textToProcess.length < 5) {
+          showToast('No speech was detected. Please try speaking longer.', true);
+          return;
+        }
+        processSummaryWithAI(textToProcess, capturedDuration, 'Voice Recording');
+      }
+    }
+
+    function resetRecording() {
+      if (isRecording) {
+        stopRecording(false);
+      }
+      finalTranscript = "";
+      liveTranscript = "";
+      recordingElapsedSeconds = 0;
+      recordingTimer.innerText = "00:00";
+      recordingStatusDot.className = 'w-3.5 h-3.5 rounded-full bg-slate-300 dark:bg-slate-700';
+      recordingStatusText.innerText = 'Ready to Record';
+      updateLiveTranscriptUI("");
+    }
+
+    function updateTimer() {
+      recordingElapsedSeconds++;
+      recordingTimer.innerText = formatDuration(recordingElapsedSeconds);
+    }
+
+    function formatDuration(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // --- Mode Toggle: Mic vs Manual Text ---
+    modeMicBtn.addEventListener('click', () => {
+      modeMicBtn.className = 'px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 font-semibold shadow-sm text-slate-900 dark:text-white transition';
+      modeTextBtn.className = 'px-2.5 py-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition';
+      micView.classList.remove('hidden');
+      textView.classList.add('hidden');
+    });
+
+    modeTextBtn.addEventListener('click', () => {
+      modeTextBtn.className = 'px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 font-semibold shadow-sm text-slate-900 dark:text-white transition';
+      modeMicBtn.className = 'px-2.5 py-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition';
+      textView.classList.remove('hidden');
+      micView.classList.add('hidden');
+    });
+
+    btnSummarizeManual.addEventListener('click', () => {
+      const text = manualTranscriptInput.value.trim();
+      if (!text || text.length < 10) {
+        showToast('Please type or paste a conversation to summarize.', true);
+        return;
+      }
+      processSummaryWithAI(text, '01:00', 'Manual Transcript');
+      manualTranscriptInput.value = '';
+    });
+
+    // --- Copilot AI Summarizer (Gemini API with Smart Local Fallback) ---
+    async function processSummaryWithAI(transcript, durationStr, sourceStr) {
+      showAILoading(true);
+
+      const apiKey = ""; // In runtime environments with Canvas, this is provided automatically
+      const prompt = `You are Microsoft Copilot / Executive Meeting Assistant.
+Analyze this recorded conversation or message transcript:
+"""
+${transcript}
+"""
+
+Produce a structured JSON output with this EXACT JSON schema:
+{
+  "subject": "Clear, concise, professional session subject/title (max 8 words)",
+  "executiveSummary": "1 to 2 crisp, high-level sentences capturing the main purpose and core outcome.",
+  "keyPoints": ["bullet point 1", "bullet point 2", "bullet point 3"],
+  "actionItems": [
+    {"task": "Action description", "assignee": "Name or Team if mentioned, else 'Team'", "done": false}
+  ],
+  "decisions": ["Key decision 1", "Key decision 2"]
+}
+`;
+
+      let summaryData = null;
+
+      try {
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                subject: { type: "STRING" },
+                executiveSummary: { type: "STRING" },
+                keyPoints: {
+                  type: "ARRAY",
+                  items: { type: "STRING" }
+                },
+                actionItems: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      task: { type: "STRING" },
+                      assignee: { type: "STRING" },
+                      done: { type: "BOOLEAN" }
+                    },
+                    required: ["task", "assignee"]
+                  }
+                },
+                decisions: {
+                  type: "ARRAY",
+                  items: { type: "STRING" }
+                }
+              },
+              required: ["subject", "executiveSummary", "keyPoints", "actionItems", "decisions"]
+            }
+          }
+        };
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const candidate = result.candidates?.[0];
+          const rawJson = candidate?.content?.parts?.[0]?.text;
+          if (rawJson) {
+            summaryData = JSON.parse(rawJson);
+          }
+        }
+      } catch (err) {
+        console.warn('Gemini API call bypassed or throttled; utilizing intelligent local summarizer engine.', err);
+      }
+
+      // Fallback heuristic summarizer if API key was empty or network fails
+      if (!summaryData || !summaryData.subject) {
+        summaryData = generateLocalHeuristicSummary(transcript);
+      }
+
+      const newSession = {
+        id: 'session-' + Date.now(),
+        subject: summaryData.subject || 'Meeting Session',
+        createdAt: new Date().toISOString(),
+        duration: durationStr,
+        source: sourceStr,
+        executiveSummary: summaryData.executiveSummary || 'Discussion completed.',
+        keyPoints: summaryData.keyPoints || [],
+        actionItems: summaryData.actionItems || [],
+        decisions: summaryData.decisions || [],
+        transcript: transcript
+      };
+
+      sessions.unshift(newSession);
+      saveSessionsToStorage();
+      selectSession(newSession.id);
+      showAILoading(false);
+      showToast('Summary generated successfully!');
+    }
+
+    // Heuristic Extractive Summarizer (Reliable Offline / No-Key Fallback)
+    function generateLocalHeuristicSummary(text) {
+      const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [text];
+      const cleaned = sentences.map(s => s.trim()).filter(s => s.length > 5);
+
+      // Extract subject from first strong sentence or frequent key nouns
+      let subject = "Conversation Sync";
+      if (cleaned.length > 0) {
+        const first = cleaned[0].replace(/^(hello|hi|today|we met about|let's talk about|meeting about)/i, '').trim();
+        subject = first.split(/\s+/).slice(0, 6).join(' ');
+        subject = subject.charAt(0).toUpperCase() + subject.slice(1);
+      }
+
+      // Executive Summary
+      const executiveSummary = cleaned.length > 1 
+        ? `${cleaned[0]} Furthermore, ${cleaned[1].toLowerCase()}`
+        : (cleaned[0] || "Key discussions were recorded and archived.");
+
+      // Key Points
+      const keyPoints = [];
+      const keywords = ['discuss', 'agree', 'plan', 'need', 'issue', 'roadmap', 'review', 'priority', 'update', 'test'];
+      cleaned.forEach(sent => {
+        if (keyPoints.length < 4) {
+          if (keywords.some(kw => sent.toLowerCase().includes(kw)) || keyPoints.length === 0) {
+            keyPoints.push(sent);
+          }
+        }
+      });
+      if (keyPoints.length === 0 && cleaned.length > 0) {
+        keyPoints.push(cleaned[0]);
+      }
+
+      // Action items detection
+      const actionItems = [];
+      const actionKeywords = ['will', 'need to', 'must', 'action', 'task', 'should', 'follow up', 'deploy', 'send', 'by thursday', 'deadline'];
+      cleaned.forEach(sent => {
+        if (actionKeywords.some(kw => sent.toLowerCase().includes(kw))) {
+          // Attempt assignee detection
+          let assignee = "Team";
+          const names = ['Sarah', 'Alex', 'Michael', 'David', 'Emma', 'John', 'Chris'];
+          names.forEach(n => {
+            if (sent.includes(n)) assignee = n;
+          });
+          actionItems.push({
+            task: sent.replace(/^(and|so|also)\s+/i, ''),
+            assignee: assignee,
+            done: false
+          });
+        }
+      });
+
+      if (actionItems.length === 0) {
+        actionItems.push({ task: "Review conversation takeaways with the team", assignee: "All", done: false });
+      }
+
+      // Decisions
+      const decisions = [];
+      const decisionKws = ['decided', 'approved', 'finalized', 'agreed', 'concluded', 'confirmed'];
+      cleaned.forEach(sent => {
+        if (decisionKws.some(kw => sent.toLowerCase().includes(kw))) {
+          decisions.push(sent);
+        }
+      });
+      if (decisions.length === 0) {
+        decisions.push("Agreed to proceed with action points as discussed.");
+      }
+
+      return {
+        subject: subject.length > 40 ? subject.substring(0, 40) + '...' : subject,
+        executiveSummary,
+        keyPoints: keyPoints.slice(0, 4),
+        actionItems: actionItems.slice(0, 5),
+        decisions: decisions.slice(0, 3)
+      };
+    }
+
+    function showAILoading(isLoading) {
+      if (isLoading) {
+        aiLoadingIndicator.classList.remove('hidden');
+        summaryContent.classList.add('opacity-40', 'pointer-events-none');
+      } else {
+        aiLoadingIndicator.classList.add('hidden');
+        summaryContent.classList.remove('opacity-40', 'pointer-events-none');
+      }
+    }
+
+    // --- Render Session in Details Pane ---
+    function selectSession(id) {
+      activeSessionId = id;
+      const session = sessions.find(s => s.id === id);
+      if (!session) return;
+
+      // Update Subject & Badges
+      summarySubject.innerText = session.subject;
+      summaryDateBadge.innerText = new Date(session.createdAt).toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+      summaryDurationTag.innerText = `Duration: ${session.duration || '00:00'}`;
+      summarySourceTag.innerText = session.source || 'Voice';
+
+      // Executive Summary
+      summaryExecutive.innerText = session.executiveSummary || 'No executive summary provided.';
+
+      // Key Points
+      summaryKeypoints.innerHTML = '';
+      if (session.keyPoints && session.keyPoints.length > 0) {
+        session.keyPoints.forEach(pt => {
+          const li = document.createElement('li');
+          li.className = 'flex items-start gap-2.5';
+          li.innerHTML = `
+            <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-2 shrink-0"></span>
+            <span class="leading-relaxed">${escapeHtml(pt)}</span>
+          `;
+          summaryKeypoints.appendChild(li);
+        });
+      } else {
+        summaryKeypoints.innerHTML = '<li class="text-slate-400 italic">No specific discussion points recorded.</li>';
+      }
+
+      // Action Items
+      summaryActionItems.innerHTML = '';
+      if (session.actionItems && session.actionItems.length > 0) {
+        session.actionItems.forEach((item, index) => {
+          const div = document.createElement('div');
+          div.className = `flex items-center justify-between p-2.5 rounded-lg border text-sm transition ${
+            item.done 
+              ? 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 line-through text-slate-400' 
+              : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+          }`;
+          div.innerHTML = `
+            <label class="flex items-center gap-3 cursor-pointer flex-1">
+              <input type="checkbox" ${item.done ? 'checked' : ''} data-task-idx="${index}" class="task-checkbox rounded border-slate-300 text-brand-600 focus:ring-brand-500 w-4 h-4 cursor-pointer">
+              <span>${escapeHtml(item.task)}</span>
+            </label>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">
+              ${escapeHtml(item.assignee || 'Unassigned')}
+            </span>
+          `;
+          summaryActionItems.appendChild(div);
+        });
+
+        // Add event listeners for toggling tasks
+        summaryActionItems.querySelectorAll('.task-checkbox').forEach(box => {
+          box.addEventListener('change', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-task-idx'), 10);
+            session.actionItems[idx].done = e.target.checked;
+            saveSessionsToStorage();
+            selectSession(session.id); // re-render state
+          });
+        });
+      } else {
+        summaryActionItems.innerHTML = '<div class="text-xs text-slate-400 italic">No action items detected.</div>';
+      }
+
+      // Decisions
+      summaryDecisions.innerHTML = '';
+      if (session.decisions && session.decisions.length > 0) {
+        session.decisions.forEach(dec => {
+          const li = document.createElement('li');
+          li.className = 'flex items-start gap-2.5';
+          li.innerHTML = `
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0"></span>
+            <span class="leading-relaxed">${escapeHtml(dec)}</span>
+          `;
+          summaryDecisions.appendChild(li);
+        });
+      } else {
+        summaryDecisions.innerHTML = '<li class="text-slate-400 italic">No decisions recorded.</li>';
+      }
+
+      // Raw Transcript
+      transcriptCollapse.innerText = session.transcript || 'No transcript text available.';
+
+      // Highlight active card in sidebar
+      renderSessionList();
+    }
+
+    // --- Render History Sidebar List ---
+    function renderSessionList() {
+      const query = (sessionSearch.value || '').toLowerCase().trim();
+      const filtered = sessions.filter(s => {
+        return s.subject.toLowerCase().includes(query) || 
+               (s.executiveSummary && s.executiveSummary.toLowerCase().includes(query)) ||
+               (s.transcript && s.transcript.toLowerCase().includes(query));
+      });
+
+      sessionCountBadge.innerText = sessions.length;
+
+      if (filtered.length === 0) {
+        sessionListEmpty.classList.remove('hidden');
+      } else {
+        sessionListEmpty.classList.add('hidden');
+      }
+
+      // Keep empty placeholder element intact, remove previously appended cards
+      const cards = sessionList.querySelectorAll('.session-card-item');
+      cards.forEach(c => c.remove());
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        const isActive = item.id === activeSessionId;
+        card.className = `session-card-item p-3.5 rounded-xl border cursor-pointer transition-all ${
+          isActive 
+            ? 'bg-brand-50/70 dark:bg-brand-950/40 border-brand-300 dark:border-brand-700/80 shadow-sm'
+            : 'bg-white dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+        }`;
+
+        const dateFormatted = new Date(item.createdAt).toLocaleDateString(undefined, {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-1 leading-snug">
+              ${escapeHtml(item.subject)}
+            </h4>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
+              ${item.duration || '00:00'}
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+            ${escapeHtml(item.executiveSummary || item.transcript || 'No summary text.')}
+          </p>
+          <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px] text-slate-400">
+            <span>${dateFormatted}</span>
+            <span class="text-brand-600 dark:text-brand-400 font-medium">${escapeHtml(item.source || 'Voice')}</span>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          selectSession(item.id);
+        });
+
+        sessionList.appendChild(card);
+      });
+    }
+
+    sessionSearch.addEventListener('input', () => {
+      renderSessionList();
+    });
+
+    // --- Buttons & Event Handlers ---
+    btnStartRecord.addEventListener('click', startRecording);
+    btnPauseRecord.addEventListener('click', pauseRecording);
+    btnStopRecord.addEventListener('click', () => stopRecording(true));
+    btnResetRecord.addEventListener('click', resetRecording);
+
+    btnNewRecording.addEventListener('click', () => {
+      // Focus on recorder and reset state if needed
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      resetRecording();
+      modeMicBtn.click();
+    });
+
+    // Transcript Accordion toggle
+    btnToggleTranscript.addEventListener('click', () => {
+      const isHidden = transcriptCollapse.classList.contains('hidden');
+      if (isHidden) {
+        transcriptCollapse.classList.remove('hidden');
+        transcriptChevron.classList.add('rotate-180');
+      } else {
+        transcriptCollapse.classList.add('hidden');
+        transcriptChevron.classList.remove('rotate-180');
+      }
+    });
+
+    // Copy formatted markdown summary
+    btnCopySummary.addEventListener('click', () => {
+      const current = sessions.find(s => s.id === activeSessionId);
+      if (!current) return;
+
+      const markdown = `# ${current.subject}
+**Date:** ${new Date(current.createdAt).toLocaleString()} | **Duration:** ${current.duration}
+
+## Executive Summary
+${current.executiveSummary}
+
+## Key Points
+${(current.keyPoints || []).map(p => `- ${p}`).join('\n')}
+
+## Action Items
+${(current.actionItems || []).map(a => `- [${a.done ? 'x' : ' '}] ${a.task} (@${a.assignee})`).join('\n')}
+
+## Decisions
+${(current.decisions || []).map(d => `- ${d}`).join('\n')}
+
+---
+### Raw Transcript
+${current.transcript}
+`;
+
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = markdown;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextArea);
+
+      showToast('Summary copied in Markdown format!');
+    });
+
+    // Export raw text file
+    btnExportTxt.addEventListener('click', () => {
+      const current = sessions.find(s => s.id === activeSessionId);
+      if (!current) return;
+
+      const content = `SUBJECT: ${current.subject}\nDATE: ${current.createdAt}\nDURATION: ${current.duration}\n\nEXECUTIVE SUMMARY:\n${current.executiveSummary}\n\nKEY POINTS:\n` +
+        (current.keyPoints || []).map(p => `* ${p}`).join('\n') +
+        `\n\nACTION ITEMS:\n` +
+        (current.actionItems || []).map(a => `[${a.done ? 'X' : ' '}] ${a.task} (Assignee: ${a.assignee})`).join('\n') +
+        `\n\nDECISIONS:\n` +
+        (current.decisions || []).map(d => `* ${d}`).join('\n') +
+        `\n\nRAW TRANSCRIPT:\n${current.transcript}`;
+
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${current.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_summary.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Summary exported as .txt');
+    });
+
+    // Delete current active session
+    btnDeleteCurrent.addEventListener('click', () => {
+      if (!activeSessionId) return;
+      sessions = sessions.filter(s => s.id !== activeSessionId);
+      saveSessionsToStorage();
+      if (sessions.length > 0) {
+        selectSession(sessions[0].id);
+      } else {
+        activeSessionId = null;
+        summarySubject.innerText = "No session selected";
+        summaryExecutive.innerText = "Start a voice recording or paste text to generate your first Copilot summary.";
+        summaryKeypoints.innerHTML = '<li>No points.</li>';
+        summaryActionItems.innerHTML = '<div class="text-xs text-slate-400 italic">No action items.</div>';
+        summaryDecisions.innerHTML = '<li>None.</li>';
+        transcriptCollapse.innerText = "No transcript.";
+      }
+      showToast('Session removed');
+    });
+
+    // Clear all history
+    btnClearAll.addEventListener('click', () => {
+      if (sessions.length === 0) return;
+      sessions = [];
+      saveSessionsToStorage();
+      activeSessionId = null;
+      summarySubject.innerText = "All sessions cleared";
+      summaryExecutive.innerText = "Record a new conversation to start your archive.";
+      summaryKeypoints.innerHTML = '';
+      summaryActionItems.innerHTML = '';
+      summaryDecisions.innerHTML = '';
+      transcriptCollapse.innerText = "";
+      showToast('All past sessions cleared');
+    });
+
+    // HTML escape utility
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // --- Window Onload Initialization ---
+    window.onload = function() {
+      initTheme();
+      setupVisualizer();
+      loadSessionsFromStorage();
+    };
+  </script>
+</body>
+</html>
